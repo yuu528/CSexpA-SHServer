@@ -37,37 +37,23 @@ void http_reply(int sock, session_info *info) {
   int len;
   int ret;
 
-  if (info->code == 404) {
+  switch (info->code) {
+  case 301:
+  case 302:
+  case 303:
+    send_30x(sock, info->code, info->location);
+    printf("%d redirect %s -> %s\n", info->code, info->path, info->location);
+    return;
+
+  case 404:
     send_404(sock);
     printf("404 not found %s\n", info->path);
     return;
-  } else if (301 <= info->code && info->code <= 303) {
-    char msg[1024];
+  }
 
-    switch (info->code) {
-    case 301:
-      strcpy(msg, "HTTP/1.0 301 Moved Permanently\r\n");
-      break;
-
-    case 302:
-      strcpy(msg, "HTTP/1.0 302 Found\r\n");
-      break;
-
-    case 303:
-      strcpy(msg, "HTTP/1.0 303 See Other\r\n");
-      break;
-    }
-
-    sprintf(buf, "%sLocation: %s\r\n", msg, info->location);
-
-    printf("redirect %s -> %s\n", info->path, info->location);
-
-    ret = send(sock, buf, strlen(buf), MSG_NOSIGNAL);
-
-    if (ret < 0) {
-      shutdown(sock, SHUT_RDWR);
-      close(sock);
-    }
+  if (info->auth_type == E_AUTH_TYPE_BASIC) {
+    send_401(sock, info->auth_name);
+    printf("401 auth required %s\n", info->path);
     return;
   }
 

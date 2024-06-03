@@ -1,0 +1,3 @@
+AuthUserFile .htpasswd
+AuthName "Please enter your username and password"
+AuthTYpe Basic

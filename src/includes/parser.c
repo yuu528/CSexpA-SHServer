@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "fileutil.h"
+#include "session.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -93,6 +94,10 @@ void parse_htaccess(session_info *info) {
   int argc;
   int ret;
 
+  // init
+  info->auth_type = E_AUTH_TYPE_NONE;
+
+  // apply from htaccess in parent dir
   for (i = info->htaccess_count - 1; i >= 0; i--) {
     fp = fopen(info->htaccess_paths[i], "r");
 
@@ -131,6 +136,41 @@ void parse_htaccess(session_info *info) {
         }
 
         strcpy(info->location, args[3]);
+      } else if (strcmp(args[0], "AuthUserFile") == 0) {
+        if (argc < 2) {
+          continue;
+        }
+
+        strcpy(info->auth_user_file, args[1]);
+      } else if (strcmp(args[0], "AuthName") == 0) {
+        if (argc < 2) {
+          continue;
+        }
+
+        // copy after remaining string
+        strcpy(info->auth_name, "");
+        for (int k = 1; k < argc; k++) {
+          // remove "
+          for (int l = 0; l < strlen(args[k]); l++) {
+            if (args[k][l] == '"') {
+              args[k][l] = ' ';
+            }
+          }
+
+          strcat(info->auth_name, args[k]);
+
+          if (k != argc - 1) {
+            strcat(info->auth_name, " ");
+          }
+        }
+      } else if (strcmp(args[0], "AuthType") == 0) {
+        if (argc < 2) {
+          continue;
+        }
+
+        if (strcmp(args[1], "Basic") == 0) {
+          info->auth_type = E_AUTH_TYPE_BASIC;
+        }
       }
     }
 
