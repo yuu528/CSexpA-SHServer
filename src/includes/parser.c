@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define HEADER_MAX_LEN_PER_LINE 128
+#define HTACCESS_MAX_ARGS 50
 
 int parse_header(char *buf, int size, session_info *info) {
   char status[HEADER_MAX_LEN_PER_LINE];
@@ -85,7 +86,7 @@ void parse_status(char *status, session_info *pinfo) {
 void parse_htaccess(session_info *info) {
   FILE *fp;
   char buf[1024];
-  char args[5][1024];
+  char args[HTACCESS_MAX_ARGS][1024];
 
   char *delim = " \t";
   char *ptok;
@@ -110,9 +111,18 @@ void parse_htaccess(session_info *info) {
         continue;
       }
 
+      // remove \n, \r
+      for (int k = 0; k < strlen(buf); k++) {
+        if (buf[k] == '\n' || buf[k] == '\r') {
+          buf[k] = '\0';
+        }
+      }
+
+      j = 0;
+
       ptok = strtok(buf, delim);
 
-      while (ptok != NULL) {
+      while (ptok != NULL && j < HTACCESS_MAX_ARGS) {
         strcpy(args[j], ptok);
 
         j++;
@@ -120,6 +130,12 @@ void parse_htaccess(session_info *info) {
       }
 
       argc = j;
+
+      // debug print
+      for (int k = 0; k < argc; k++) {
+        printf("%s ", args[k]);
+      }
+      printf("\n");
 
       // parse args
       if (strcmp(args[0], "Redirect") == 0) {
