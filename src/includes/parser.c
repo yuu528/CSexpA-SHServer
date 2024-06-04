@@ -199,6 +199,7 @@ void parse_htaccess(session_info *info) {
           get_parent_path(path, parent);
 
           strcpy(info->auth_user_file, parent);
+          strcat(info->auth_user_file, "/");
           strcat(info->auth_user_file, args[1]);
         } else {
           strcpy(info->auth_user_file, args[1]);
