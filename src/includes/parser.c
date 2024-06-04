@@ -6,41 +6,44 @@
 #include <string.h>
 
 #define HEADER_MAX_LEN_PER_LINE 128
+#define HEADER_MAX_ARGS 50
 #define HTACCESS_MAX_ARGS 50
 
 int parse_header(char *buf, int size, session_info *info) {
-  char status[HEADER_MAX_LEN_PER_LINE];
-  int i, j;
+  char line[HEADER_MAX_LEN_PER_LINE], *ptok, *ptokn;
+  char *delim = "\n";
+  int i = 0;
 
-  enum state_type { PARSE_STATUS, PARSE_OTHERS, PARSE_END } state;
+  // init
+  info->auth_type = E_AUTH_TYPE_NONE;
+  strcpy(info->client_authorization, "");
 
-  state = PARSE_STATUS;
-  j = 0;
+  ptok = strtok_r(buf, delim, &ptokn);
 
-  for (i = 0; i < size; i++) {
-    switch (state) {
-    case PARSE_STATUS:
-      if (buf[i] == '\r') {
-        status[j] = '\0';
-        j = 0;
-        state = PARSE_END;
-        parse_status(status, info);
-        check_file(info);
-        find_htaccess(info);
-        parse_htaccess(info);
-      } else {
-        status[j] = buf[i];
-        j++;
+  while (ptok != NULL) {
+    // remove \n
+    for (int j = 0; j < strlen(ptok); j++) {
+      if (ptok[j] == '\n') {
+        ptok[j] = '\0';
       }
-      break;
     }
 
-    if (state == PARSE_END) {
-      return 1;
+    if (i == 0) {
+      parse_status(ptok, info);
+    } else {
+      parse_header_field(ptok, info);
     }
+
+    ptok = strtok_r(NULL, delim, &ptokn);
+
+    i++;
   }
 
-  return 0;
+  check_file(info);
+  find_htaccess(info);
+  parse_htaccess(info);
+
+  return -1;
 }
 
 void parse_status(char *status, session_info *pinfo) {
@@ -83,20 +86,58 @@ void parse_status(char *status, session_info *pinfo) {
   strcpy(pinfo->path, path);
 }
 
+void parse_header_field(char *line, session_info *info) {
+  char args[HEADER_MAX_ARGS][1024];
+  char *ptok, *ptokn, *ptok2, *ptokn2;
+  char *delim = ":", *delim2 = " ";
+  int i = 0, j;
+
+  ptok = strtok_r(line, delim, &ptokn);
+
+  while (ptok != NULL) {
+    strcpy(args[i], ptok);
+
+    ptok = strtok_r(NULL, delim, &ptokn);
+
+    i++;
+  }
+
+  // parse args
+  if (strcmp(args[0], "Authorization") == 0) {
+    j = 0;
+
+    // skip space
+    while (args[1][j] == ' ') {
+      j++;
+    }
+
+    ptok2 = strtok_r(args[1] + j, delim2, &ptokn2);
+
+    // check auth type
+    if (strcmp(args[1] + j, "Basic") == 0) {
+      // remove \n
+      for (int k = 0; k < strlen(ptok2); k++) {
+        if (ptok2[k] == '\n') {
+          ptok2[k] = '\0';
+        }
+      }
+
+      strcpy(info->client_authorization, ptokn2);
+    }
+  }
+}
+
 void parse_htaccess(session_info *info) {
   FILE *fp;
   char buf[1024];
   char args[HTACCESS_MAX_ARGS][1024];
 
   char *delim = " \t";
-  char *ptok;
+  char *ptok, *ptokn;
 
   int i, j = 0;
   int argc;
   int ret;
-
-  // init
-  info->auth_type = E_AUTH_TYPE_NONE;
 
   // apply from htaccess in parent dir
   for (i = info->htaccess_count - 1; i >= 0; i--) {
@@ -120,22 +161,16 @@ void parse_htaccess(session_info *info) {
 
       j = 0;
 
-      ptok = strtok(buf, delim);
+      ptok = strtok_r(buf, delim, &ptokn);
 
       while (ptok != NULL && j < HTACCESS_MAX_ARGS) {
         strcpy(args[j], ptok);
 
         j++;
-        ptok = strtok(NULL, delim);
+        ptok = strtok_r(NULL, delim, &ptokn);
       }
 
       argc = j;
-
-      // debug print
-      for (int k = 0; k < argc; k++) {
-        printf("%s ", args[k]);
-      }
-      printf("\n");
 
       // parse args
       if (strcmp(args[0], "Redirect") == 0) {
@@ -157,7 +192,17 @@ void parse_htaccess(session_info *info) {
           continue;
         }
 
-        strcpy(info->auth_user_file, args[1]);
+        // convert to relative path from htaccess
+        if (args[1][0] != '/') {
+          char *path = info->htaccess_paths[i];
+          char parent[MAX_PATH_LEN];
+          get_parent_path(path, parent);
+
+          strcpy(info->auth_user_file, parent);
+          strcat(info->auth_user_file, args[1]);
+        } else {
+          strcpy(info->auth_user_file, args[1]);
+        }
       } else if (strcmp(args[0], "AuthName") == 0) {
         if (argc < 2) {
           continue;

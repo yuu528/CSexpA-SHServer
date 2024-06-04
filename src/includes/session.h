@@ -6,6 +6,7 @@
 #define MAX_CMD_LEN 64
 #define MAX_TYPE_LEN 64
 #define MAX_AUTH_NAME_LEN 512
+#define MAX_AUTH_CRED_LEN 2048
 
 #define HTACCESS_MAX 10
 
@@ -32,6 +33,7 @@ typedef struct {
   char auth_user_file[MAX_PATH_LEN];
   char auth_name[MAX_AUTH_NAME_LEN];
   auth_type_spec auth_type;
+  char client_authorization[MAX_AUTH_CRED_LEN];
 } session_info;
 
 int http_session(int);

@@ -1,4 +1,5 @@
 #include "session.h"
+#include "auth.h"
 #include "parser.h"
 #include "send.h"
 
@@ -52,9 +53,12 @@ void http_reply(int sock, session_info *info) {
   }
 
   if (info->auth_type == E_AUTH_TYPE_BASIC) {
-    send_401(sock, info->auth_name);
-    printf("401 auth required %s\n", info->path);
-    return;
+    printf("client authorization: %s\n", info->client_authorization);
+    if (basic_auth(info->client_authorization, info->auth_user_file) == -1) {
+      send_401(sock, info->auth_name);
+      printf("401 auth required %s\n", info->path);
+      return;
+    }
   }
 
   len = sprintf(buf, "HTTP/1.0 200 OK\r\n");

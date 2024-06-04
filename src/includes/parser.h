@@ -6,6 +6,7 @@
 
 int parse_header(char *, int, session_info *);
 void parse_status(char *, session_info *);
+void parse_header_field(char *, session_info *);
 void parse_htaccess(session_info *);
 
 #endif
