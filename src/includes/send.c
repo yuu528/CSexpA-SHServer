@@ -1,10 +1,28 @@
 #include "send.h"
+#include "session.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include <sys/socket.h>
+
+void send_200(int sock, session_info *info) {
+  char buf[16384];
+  int len, ret;
+
+  len = sprintf(buf, "HTTP/1.0 200 OK\r\n");
+  len += sprintf(buf + len, "Content-Length: %d\r\n", info->size);
+  len += sprintf(buf + len, "Content-Type: %s\r\n", info->type);
+  len += sprintf(buf + len, "\r\n");
+
+  ret = send(sock, buf, len, MSG_NOSIGNAL);
+  if (ret < 0) {
+    shutdown(sock, SHUT_RDWR);
+    close(sock);
+    return;
+  }
+}
 
 void send_30x(int sock, int code, char *location) {
   char buf[16384];

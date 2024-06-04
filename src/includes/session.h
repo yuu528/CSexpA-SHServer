@@ -34,6 +34,10 @@ typedef struct {
   char auth_name[MAX_AUTH_NAME_LEN];
   auth_type_spec auth_type;
   char client_authorization[MAX_AUTH_CRED_LEN];
+
+  // errordoc
+  char doc_401[MAX_PATH_LEN];
+  char doc_404[MAX_PATH_LEN];
 } session_info;
 
 int http_session(int);

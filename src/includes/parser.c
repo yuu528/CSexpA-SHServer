@@ -3,6 +3,7 @@
 #include "session.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define HEADER_MAX_LEN_PER_LINE 128
@@ -130,7 +131,7 @@ void parse_header_field(char *line, session_info *info) {
 void parse_htaccess(session_info *info) {
   FILE *fp;
   char buf[1024];
-  char args[HTACCESS_MAX_ARGS][1024];
+  char args[HTACCESS_MAX_ARGS][512];
 
   char *delim = " \t";
   char *ptok, *ptokn;
@@ -198,9 +199,7 @@ void parse_htaccess(session_info *info) {
           char parent[MAX_PATH_LEN];
           get_parent_path(path, parent);
 
-          strcpy(info->auth_user_file, parent);
-          strcat(info->auth_user_file, "/");
-          strcat(info->auth_user_file, args[1]);
+          sprintf(info->auth_user_file, "%s/%s", parent, args[1]);
         } else {
           strcpy(info->auth_user_file, args[1]);
         }
@@ -232,6 +231,34 @@ void parse_htaccess(session_info *info) {
 
         if (strcmp(args[1], "Basic") == 0) {
           info->auth_type = E_AUTH_TYPE_BASIC;
+        }
+      } else if (strcmp(args[0], "ErrorDocument") == 0) {
+        if (argc < 3) {
+          continue;
+        }
+
+        int code = atoi(args[1]);
+        char tmppath[MAX_PATH_LEN];
+
+        // convert to relative path from htaccess
+        if (args[2][0] != '/') {
+          char *path = info->htaccess_paths[i];
+          char parent[MAX_PATH_LEN];
+          get_parent_path(path, parent);
+
+          sprintf(tmppath, "%s/%s", parent, args[2]);
+        } else {
+          sprintf(tmppath, "html%s", args[2]);
+        }
+
+        switch (code) {
+        case 401:
+          strcpy(info->doc_401, tmppath);
+          break;
+
+        case 404:
+          strcpy(info->doc_404, tmppath);
+          break;
         }
       }
     }
