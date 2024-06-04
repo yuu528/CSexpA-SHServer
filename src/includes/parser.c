@@ -115,9 +115,9 @@ void parse_header_field(char *line, session_info *info) {
 
     // check auth type
     if (strcmp(args[1] + j, "Basic") == 0) {
-      // remove \n
+      // remove \r
       for (int k = 0; k < strlen(ptok2); k++) {
-        if (ptok2[k] == '\n') {
+        if (ptok2[k] == '\r' || ptok2[k] == '\n') {
           ptok2[k] = '\0';
         }
       }

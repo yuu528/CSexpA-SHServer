@@ -5,20 +5,28 @@
 #include <string.h>
 
 int base64_decode(char *input, char *output) {
-  char tmpfile[L_tmpnam];
+  char tmpfile[L_tmpnam], tmpfile2[L_tmpnam];
   char cmd[1024];
 
   tmpnam(tmpfile);
+  tmpnam(tmpfile2);
 
-  sprintf(cmd, "echo '%s' | base64 -d > %s", input, tmpfile);
-  system(cmd);
-
-  FILE *fp = fopen(tmpfile, "r");
+  FILE *fp = fopen(tmpfile, "w");
   if (fp == NULL) {
     return -1;
   }
+  fputs(input, fp);
+  fclose(fp);
 
-  fgets(output, 1024, fp);
+  sprintf(cmd, "cat %s | tr -d '\\n\\r' | base64 -d > %s", tmpfile, tmpfile2);
+  system(cmd);
+
+  FILE *fp2 = fopen(tmpfile2, "r");
+  if (fp2 == NULL) {
+    return -1;
+  }
+
+  fgets(output, 1024, fp2);
 
   return 0;
 }
