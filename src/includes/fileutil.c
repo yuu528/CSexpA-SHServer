@@ -41,11 +41,18 @@ void check_file(session_info *info) {
     info->size = (int)s.st_size;
   }
 
-  pext = strstr(info->path, ".");
-  if (pext != NULL && strcmp(pext, ".html") == 0) {
-    strcpy(info->type, "text/html");
-  } else if (pext != NULL && strcmp(pext, ".jpg") == 0) {
-    strcpy(info->type, "image/jpeg");
+  pext = strstr(info->real_path, ".");
+
+  if (pext != NULL) {
+    if (strcmp(pext, ".html") == 0) {
+      strcpy(info->type, "text/html");
+    } else if (strcmp(pext, ".jpg") == 0) {
+      strcpy(info->type, "image/jpeg");
+    } else if (strcmp(pext, ".png") == 0) {
+      strcpy(info->type, "image/png");
+    } else if (strcmp(pext, ".gif") == 0) {
+      strcpy(info->type, "image/gif");
+    }
   }
 }
 
