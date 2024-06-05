@@ -7,6 +7,15 @@
 
 #include <sys/socket.h>
 
+void send_http_msg(int sock, char *msg) {
+  int ret = send(sock, msg, strlen(msg), MSG_NOSIGNAL);
+
+  if (ret < 0) {
+    shutdown(sock, SHUT_RDWR);
+    close(sock);
+  }
+}
+
 void send_200(int sock, session_info *info) {
   char buf[16384];
   int len, ret;
@@ -16,12 +25,7 @@ void send_200(int sock, session_info *info) {
   len += sprintf(buf + len, "Content-Type: %s\r\n", info->type);
   len += sprintf(buf + len, "\r\n");
 
-  ret = send(sock, buf, len, MSG_NOSIGNAL);
-  if (ret < 0) {
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-    return;
-  }
+  send_http_msg(sock, buf);
 }
 
 void send_30x(int sock, int code, char *location) {
@@ -45,13 +49,7 @@ void send_30x(int sock, int code, char *location) {
 
   sprintf(buf, "%sLocation: %s\r\n", msg, location);
 
-  ret = send(sock, buf, strlen(buf), MSG_NOSIGNAL);
-
-  if (ret < 0) {
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-  }
-  return;
+  send_http_msg(sock, buf);
 }
 
 void send_401(int sock, char *realm) {
@@ -61,12 +59,7 @@ void send_401(int sock, char *realm) {
   sprintf(buf, "HTTP/1.0 401 Authorization Required\r\n");
   sprintf(buf + strlen(buf), "WWW-Authenticate: Basic realm=\"%s\"\r\n", realm);
 
-  ret = send(sock, buf, strlen(buf), MSG_NOSIGNAL);
-
-  if (ret < 0) {
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-  }
+  send_http_msg(sock, buf);
 }
 
 void send_404(int sock) {
@@ -75,12 +68,8 @@ void send_404(int sock) {
 
   sprintf(buf, "HTTP/1.0 404 Not Found\r\n\r\n");
   printf("%s", buf);
-  ret = send(sock, buf, strlen(buf), MSG_NOSIGNAL);
 
-  if (ret < 0) {
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-  }
+  send_http_msg(sock, buf);
 }
 
 void send_file(int sock, char *filename) {
