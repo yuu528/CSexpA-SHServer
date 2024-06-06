@@ -40,6 +40,7 @@
   HEADER_WWW_AUTH HEADER_WWW_AUTH_BASIC HEADER_WWW_AUTH_REALM CRLF
 
 #define CGI_CMD_PHP "php-cgi %s > %s"
+#define CGI_CMD_CGI "%s > %s"
 
 int count_digits(int);
 void send_http_msg(int, char *);

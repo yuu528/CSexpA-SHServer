@@ -144,6 +144,13 @@ void send_file_cgi(int sock, char *filename) {
       send_file(sock, tmpfile, 1);
 
       return;
+    } else if (strcmp(pext, EXT_CGI) == 0) {
+      sprintf(cmd, CGI_CMD_CGI, filename, tmpfile);
+      system(cmd);
+
+      send_file(sock, tmpfile, 1);
+
+      return;
     }
   }
 
