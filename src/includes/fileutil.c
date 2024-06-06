@@ -20,6 +20,36 @@ int get_parent_path(char *path, char *parent) {
   }
 }
 
+int get_file_size(char *path) {
+  struct stat s;
+
+  if (stat(path, &s) == -1) {
+    return -1;
+  } else {
+    return (int)s.st_size;
+  }
+}
+
+void get_file_type(char *path, char *type) {
+  char *pext = strstr(path, ".");
+
+  if (pext != NULL) {
+    if (strcmp(pext, ".html") == 0) {
+      strcpy(type, "text/html");
+    } else if (strcmp(pext, ".jpg") == 0) {
+      strcpy(type, "image/jpeg");
+    } else if (strcmp(pext, ".png") == 0) {
+      strcpy(type, "image/png");
+    } else if (strcmp(pext, ".gif") == 0) {
+      strcpy(type, "image/gif");
+    } else {
+      strcpy(type, "text/plain");
+    }
+  } else {
+    strcpy(type, "text/plain");
+  }
+}
+
 void check_file(session_info *info) {
   struct stat s;
   int ret;
@@ -41,19 +71,7 @@ void check_file(session_info *info) {
     info->size = (int)s.st_size;
   }
 
-  pext = strstr(info->real_path, ".");
-
-  if (pext != NULL) {
-    if (strcmp(pext, ".html") == 0) {
-      strcpy(info->type, "text/html");
-    } else if (strcmp(pext, ".jpg") == 0) {
-      strcpy(info->type, "image/jpeg");
-    } else if (strcmp(pext, ".png") == 0) {
-      strcpy(info->type, "image/png");
-    } else if (strcmp(pext, ".gif") == 0) {
-      strcpy(info->type, "image/gif");
-    }
-  }
+  get_file_type(info->real_path, info->type);
 }
 
 void find_htaccess(session_info *info) {

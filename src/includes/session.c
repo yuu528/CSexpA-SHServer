@@ -43,7 +43,7 @@ void http_reply(int sock, session_info *info) {
 
   switch (info->code) {
   case 200:
-    send_200(sock, info);
+    send_200(sock);
     send_file(sock, info->real_path);
     break;
 
@@ -60,6 +60,8 @@ void http_reply(int sock, session_info *info) {
 
     if (access(info->doc_401, F_OK) != -1) {
       send_file(sock, info->doc_401);
+    } else {
+      send_http_msg(sock, CRLF);
     }
     break;
 
@@ -69,6 +71,8 @@ void http_reply(int sock, session_info *info) {
 
     if (access(info->doc_404, F_OK) != -1) {
       send_file(sock, info->doc_404);
+    } else {
+      send_http_msg(sock, CRLF);
     }
     break;
   }
