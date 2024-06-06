@@ -70,7 +70,7 @@ void send_404(int sock) { send_http_msg(sock, HTTP_404_FORMAT); }
 void send_file(int sock, char *filename) {
   FILE *fp;
   int len;
-  char buf[16384];
+  char buf[FILE_BUFFER_SIZE];
 
   int size = get_file_size(filename);
   char type[32];
@@ -94,7 +94,7 @@ void send_file(int sock, char *filename) {
     return;
   }
 
-  len = fread(buf, sizeof(char), 16384, fp);
+  len = fread(buf, sizeof(char), FILE_BUFFER_SIZE, fp);
   while (len > 0) {
     int ret = send(sock, buf, len, MSG_NOSIGNAL);
     if (ret < 0) {
@@ -102,7 +102,7 @@ void send_file(int sock, char *filename) {
       close(sock);
       break;
     }
-    len = fread(buf, sizeof(char), 1460, fp);
+    len = fread(buf, sizeof(char), FILE_BUFFER_SIZE, fp);
   }
 
   fclose(fp);

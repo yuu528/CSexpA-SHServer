@@ -4,6 +4,8 @@
 
 #include "session.h"
 
+#define FILE_BUFFER_SIZE 8192
+
 void check_file(session_info *);
 int get_file_size(char *);
 void get_file_type(char *, char *);

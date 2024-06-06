@@ -1,14 +1,11 @@
 #include "parser.h"
 #include "fileutil.h"
+#include "htaccess_parser.h"
 #include "session.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define HEADER_MAX_LEN_PER_LINE 128
-#define HEADER_MAX_ARGS 50
-#define HTACCESS_MAX_ARGS 50
 
 int parse_header(char *buf, int size, session_info *info) {
   char line[HEADER_MAX_LEN_PER_LINE], *ptok, *ptokn;
@@ -125,144 +122,5 @@ void parse_header_field(char *line, session_info *info) {
 
       strcpy(info->client_authorization, ptokn2);
     }
-  }
-}
-
-void parse_htaccess(session_info *info) {
-  FILE *fp;
-  char buf[1024];
-  char args[HTACCESS_MAX_ARGS][512];
-
-  char *delim = " \t";
-  char *ptok, *ptokn;
-
-  int i, j = 0;
-  int argc;
-  int ret;
-
-  // apply from htaccess in parent dir
-  for (i = info->htaccess_count - 1; i >= 0; i--) {
-    fp = fopen(info->htaccess_paths[i], "r");
-
-    if (fp == NULL) {
-      continue;
-    }
-
-    while (fgets(buf, 1024, fp) != NULL) {
-      if (buf[0] == '#') {
-        continue;
-      }
-
-      // remove \n, \r
-      for (int k = 0; k < strlen(buf); k++) {
-        if (buf[k] == '\n' || buf[k] == '\r') {
-          buf[k] = '\0';
-        }
-      }
-
-      j = 0;
-
-      ptok = strtok_r(buf, delim, &ptokn);
-
-      while (ptok != NULL && j < HTACCESS_MAX_ARGS) {
-        strcpy(args[j], ptok);
-
-        j++;
-        ptok = strtok_r(NULL, delim, &ptokn);
-      }
-
-      argc = j;
-
-      // parse args
-      if (strcmp(args[0], "Redirect") == 0) {
-        if (argc < 4) {
-          continue;
-        }
-
-        if (strcmp(args[1], "parmanent") == 0) {
-          info->code = 301;
-        } else if (strcmp(args[1], "temp") == 0) {
-          info->code = 302;
-        } else if (strcmp(args[1], "seeother") == 0) {
-          info->code = 303;
-        }
-
-        strcpy(info->location, args[3]);
-      } else if (strcmp(args[0], "AuthUserFile") == 0) {
-        if (argc < 2) {
-          continue;
-        }
-
-        // convert to relative path from htaccess
-        if (args[1][0] != '/') {
-          char *path = info->htaccess_paths[i];
-          char parent[MAX_PATH_LEN];
-          get_parent_path(path, parent);
-
-          sprintf(info->auth_user_file, "%s/%s", parent, args[1]);
-        } else {
-          strcpy(info->auth_user_file, args[1]);
-        }
-      } else if (strcmp(args[0], "AuthName") == 0) {
-        if (argc < 2) {
-          continue;
-        }
-
-        // copy after remaining string
-        strcpy(info->auth_name, "");
-        for (int k = 1; k < argc; k++) {
-          // remove "
-          for (int l = 0; l < strlen(args[k]); l++) {
-            if (args[k][l] == '"') {
-              args[k][l] = ' ';
-            }
-          }
-
-          strcat(info->auth_name, args[k]);
-
-          if (k != argc - 1) {
-            strcat(info->auth_name, " ");
-          }
-        }
-      } else if (strcmp(args[0], "AuthType") == 0) {
-        if (argc < 2) {
-          continue;
-        }
-
-        if (strcmp(args[1], "Basic") == 0) {
-          info->auth_type = E_AUTH_TYPE_BASIC;
-        }
-      } else if (strcmp(args[0], "ErrorDocument") == 0) {
-        if (argc < 3) {
-          continue;
-        }
-
-        int code = atoi(args[1]);
-        char tmppath[MAX_PATH_LEN];
-
-        // convert to relative path from htaccess
-        if (args[2][0] != '/') {
-          char *path = info->htaccess_paths[i];
-          char parent[MAX_PATH_LEN];
-          get_parent_path(path, parent);
-
-          sprintf(tmppath, "%s/%s", parent, args[2]);
-        } else {
-          sprintf(tmppath, "html%s", args[2]);
-        }
-
-        switch (code) {
-        case 401:
-          strcpy(info->doc_401, tmppath);
-          break;
-
-        case 404:
-          strcpy(info->doc_404, tmppath);
-          break;
-        }
-      }
-    }
-
-    fclose(fp);
   }
 }

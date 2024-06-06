@@ -4,9 +4,11 @@
 
 #include "session.h"
 
+#define HEADER_MAX_LEN_PER_LINE 128
+#define HEADER_MAX_ARGS 10
+
 int parse_header(char *, int, session_info *);
 void parse_status(char *, session_info *);
 void parse_header_field(char *, session_info *);
-void parse_htaccess(session_info *);
 
 #endif
