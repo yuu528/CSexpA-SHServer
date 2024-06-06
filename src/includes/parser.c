@@ -8,7 +8,7 @@
 #include <string.h>
 
 int parse_header(char *buf, int size, session_info *info) {
-  char line[HEADER_MAX_LEN_PER_LINE], *ptok, *ptokn;
+  char *ptok, *ptokn;
   char *delim = "\n";
   int i = 0;
 
@@ -47,7 +47,6 @@ int parse_header(char *buf, int size, session_info *info) {
 void parse_status(char *status, session_info *pinfo) {
   char cmd[1024];
   char path[1024];
-  char *pext;
   int i, j;
 
   enum state_type { SEARCH_CMD, SEARCH_PATH, SEARCH_END } state;

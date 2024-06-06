@@ -36,7 +36,6 @@ int basic_auth(char *cred, char *path) {
 
   char line[1024];
   char decoded[1024];
-  char *ptok, *ptokn;
 
   if (strcmp(cred, "") == 0) {
     return -1;

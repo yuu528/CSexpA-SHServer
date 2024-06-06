@@ -94,7 +94,6 @@ void check_file(session_info *info) {
 
 void find_htaccess(session_info *info) {
   char cur_path[MAX_PATH_LEN], next_path[MAX_PATH_LEN];
-  int ret;
   int htaccess_idx = 0;
 
   strcpy(cur_path, info->real_path);
