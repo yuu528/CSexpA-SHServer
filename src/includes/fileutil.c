@@ -66,18 +66,27 @@ void check_file(session_info *info) {
   if ((s.st_mode & S_IFMT) == S_IFDIR) {
     do {
       sprintf(real_path, "%s/%s", info->real_path, index_file[i++]);
-    } while (access(real_path, R_OK) == -1 && i < index_file_count);
+    } while (access(real_path, F_OK) == -1 && i < index_file_count);
 
     strcpy(info->real_path, real_path);
   }
 
   ret = stat(info->real_path, &s);
 
-  if (ret == -1) {
+  if (ret == -1 || access(info->real_path, F_OK) == -1) {
     info->code = 404;
-  } else {
+  } else if (access(info->real_path, R_OK) == 0) {
     info->code = 200;
     info->size = (int)s.st_size;
+
+    pext = strrchr(info->real_path, '.');
+    if (pext != NULL) {
+      if ((strcmp(pext, EXT_CGI) == 0) && access(info->real_path, X_OK) == -1) {
+        info->code = 403;
+      }
+    }
+  } else {
+    info->code = 403;
   }
 
   get_file_type(info->real_path, info->type);

@@ -13,6 +13,7 @@
 #define HTTP_303 "303 See Other"
 
 #define HTTP_401 "401 Unauthorized"
+#define HTTP_403 "403 Forbidden"
 #define HTTP_404 "404 Not Found"
 
 #define HEADER_CONTENT_LENGTH "Content-Length: "
@@ -27,9 +28,7 @@
 #define CRLF "\r\n"
 
 #define HTTP_200_FORMAT HTTP_VERSION HTTP_200 CRLF
-#define HTTP_30X_FORMAT(code) HTTP_VERSION HTTP_##code CRLF
-#define HTTP_401_FORMAT HTTP_VERSION HTTP_401 CRLF
-#define HTTP_404_FORMAT HTTP_VERSION HTTP_404 CRLF
+#define HTTP_FORMAT(code) HTTP_VERSION HTTP_##code CRLF
 
 #define HEADER_CONTENT_FORMAT                                                  \
   HEADER_CONTENT_LENGTH "%d" CRLF HEADER_CONTENT_TYPE "%s" CRLF
@@ -47,6 +46,7 @@ void send_http_msg(int, char *);
 void send_200(int);
 void send_30x(int, int, char *);
 void send_401(int, char *);
+void send_403(int);
 void send_404(int);
 void send_file(int, char *, int);
 void send_file_cgi(int, char *);

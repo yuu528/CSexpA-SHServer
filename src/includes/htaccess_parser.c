@@ -176,6 +176,10 @@ int parse_htaccess_errordoc(session_info *info, int argc, int max_argv_len,
     strcpy(info->doc_401, tmppath);
     break;
 
+  case 403:
+    strcpy(info->doc_403, tmppath);
+    break;
+
   case 404:
     strcpy(info->doc_404, tmppath);
     break;

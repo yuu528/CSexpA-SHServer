@@ -34,7 +34,6 @@ int http_session(int sock) {
 }
 
 void http_reply(int sock, session_info *info) {
-
   if (info->auth_type == E_AUTH_TYPE_BASIC) {
     if (basic_auth(info->client_authorization, info->auth_user_file) == -1) {
       info->code = 401;
@@ -60,6 +59,17 @@ void http_reply(int sock, session_info *info) {
 
     if (access(info->doc_401, R_OK) != -1) {
       send_file_cgi(sock, info->doc_401);
+    } else {
+      send_http_msg(sock, CRLF);
+    }
+    break;
+
+  case 403:
+    send_403(sock);
+    printf("403 forbidden %s\n", info->path);
+
+    if (access(info->doc_403, R_OK) != -1) {
+      send_file_cgi(sock, info->doc_403);
     } else {
       send_http_msg(sock, CRLF);
     }

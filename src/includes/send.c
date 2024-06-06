@@ -32,23 +32,22 @@ void send_200(int sock) { send_http_msg(sock, HTTP_200_FORMAT); }
 
 void send_30x(int sock, int code, char *location) {
   // max length: 301 format
-  static const int base_len =
-      sizeof(HTTP_30X_FORMAT(301) HEADER_LOCATION_FORMAT);
+  static const int base_len = sizeof(HTTP_FORMAT(301) HEADER_LOCATION_FORMAT);
   char buf[base_len + strlen(location)];
 
   int len;
 
   switch (code) {
   case 301:
-    len = sprintf(buf, HTTP_30X_FORMAT(301));
+    len = sprintf(buf, HTTP_FORMAT(301));
     break;
 
   case 302:
-    len = sprintf(buf, HTTP_30X_FORMAT(302));
+    len = sprintf(buf, HTTP_FORMAT(302));
     break;
 
   case 303:
-    len = sprintf(buf, HTTP_30X_FORMAT(303));
+    len = sprintf(buf, HTTP_FORMAT(303));
     break;
   }
 
@@ -58,15 +57,17 @@ void send_30x(int sock, int code, char *location) {
 }
 
 void send_401(int sock, char *realm) {
-  static const int base_len = sizeof(HTTP_401_FORMAT HEADER_WWW_AUTH_FORMAT);
+  static const int base_len = sizeof(HTTP_FORMAT(401) HEADER_WWW_AUTH_FORMAT);
   char buf[base_len + strlen(realm)];
 
-  sprintf(buf, HTTP_401_FORMAT HEADER_WWW_AUTH_FORMAT, realm);
+  sprintf(buf, HTTP_FORMAT(401) HEADER_WWW_AUTH_FORMAT, realm);
 
   send_http_msg(sock, buf);
 }
 
-void send_404(int sock) { send_http_msg(sock, HTTP_404_FORMAT); }
+void send_403(int sock) { send_http_msg(sock, HTTP_FORMAT(403)); }
+
+void send_404(int sock) { send_http_msg(sock, HTTP_FORMAT(404)); }
 
 void send_file(int sock, char *filename, int additional_header) {
   FILE *fp;

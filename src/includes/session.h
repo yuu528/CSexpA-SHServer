@@ -22,6 +22,9 @@ typedef struct {
   int code;
   int size;
 
+  // cgi
+  int is_cgi;
+
   // htaccess
   char htaccess_paths[HTACCESS_MAX][MAX_PATH_LEN];
   int htaccess_count;
@@ -37,6 +40,7 @@ typedef struct {
 
   // errordoc
   char doc_401[MAX_PATH_LEN];
+  char doc_403[MAX_PATH_LEN];
   char doc_404[MAX_PATH_LEN];
 } session_info;
 
