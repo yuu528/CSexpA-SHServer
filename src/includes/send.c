@@ -2,6 +2,7 @@
 #include "fileutil.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -67,32 +68,51 @@ void send_401(int sock, char *realm) {
 
 void send_404(int sock) { send_http_msg(sock, HTTP_404_FORMAT); }
 
-void send_file(int sock, char *filename) {
+void send_file(int sock, char *filename, int additional_header) {
   FILE *fp;
   int len;
   char buf[FILE_BUFFER_SIZE];
+  char *header_end_pos;
 
   int size = get_file_size(filename);
   char type[32];
-
-  get_file_type(filename, type);
 
   // send header
   static const int header_base_len = sizeof(HEADER_CONTENT_FORMAT);
 
   char header_buf[header_base_len + count_digits(size) + strlen(type)];
 
-  sprintf(header_buf, HEADER_CONTENT_FORMAT CRLF, size, type);
-
-  send_http_msg(sock, header_buf);
-
-  // send file
-  fp = fopen(filename, "r");
+  fp = fopen(filename, "rb");
   if (fp == NULL) {
     shutdown(sock, SHUT_RDWR);
     close(sock);
     return;
   }
+
+  if (additional_header == 1) {
+    // sub input file header length from len
+    while ((len = fread(buf, sizeof(char), FILE_BUFFER_SIZE, fp)) > 0) {
+      header_end_pos = strstr(buf, CRLF CRLF);
+
+      if (header_end_pos != NULL) {
+        size -= header_end_pos - buf + 4;
+        break;
+      }
+
+      size -= len;
+    }
+
+    rewind(fp);
+
+    sprintf(header_buf, HEADER_CONTENT_LENGTH "%d" CRLF, size);
+  } else {
+    get_file_type(filename, type);
+    sprintf(header_buf, HEADER_CONTENT_FORMAT CRLF, size, type);
+  }
+
+  send_http_msg(sock, header_buf);
+
+  // send file
 
   len = fread(buf, sizeof(char), FILE_BUFFER_SIZE, fp);
   while (len > 0) {
@@ -106,4 +126,26 @@ void send_file(int sock, char *filename) {
   }
 
   fclose(fp);
+}
+
+void send_file_cgi(int sock, char *filename) {
+  char tmpfile[L_tmpnam];
+  char *pext = strrchr(filename, '.');
+
+  char cmd[sizeof(CGI_CMD_PHP) + strlen(filename)];
+
+  tmpnam(tmpfile);
+
+  if (pext != NULL) {
+    if (strcmp(pext, EXT_PHP) == 0) {
+      sprintf(cmd, CGI_CMD_PHP, filename, tmpfile);
+      system(cmd);
+
+      send_file(sock, tmpfile, 1);
+
+      return;
+    }
+  }
+
+  send_file(sock, filename, 0);
 }

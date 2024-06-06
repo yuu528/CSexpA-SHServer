@@ -31,35 +31,44 @@ int get_file_size(char *path) {
 }
 
 void get_file_type(char *path, char *type) {
-  char *pext = strstr(path, ".");
+  char *pext = strrchr(path, '.');
 
   if (pext != NULL) {
-    if (strcmp(pext, ".html") == 0) {
-      strcpy(type, "text/html");
-    } else if (strcmp(pext, ".jpg") == 0) {
-      strcpy(type, "image/jpeg");
-    } else if (strcmp(pext, ".png") == 0) {
-      strcpy(type, "image/png");
-    } else if (strcmp(pext, ".gif") == 0) {
-      strcpy(type, "image/gif");
+    if (strcmp(pext, EXT_HTML) == 0 || strcmp(pext, EXT_HTM) == 0 ||
+        strcmp(pext, EXT_PHP) == 0) {
+      strcpy(type, MIME_HTML);
+    } else if (strcmp(pext, EXT_JPG) == 0) {
+      strcpy(type, MIME_JPG);
+    } else if (strcmp(pext, EXT_PNG) == 0) {
+      strcpy(type, MIME_PNG);
+    } else if (strcmp(pext, EXT_GIF) == 0) {
+      strcpy(type, MIME_GIF);
     } else {
-      strcpy(type, "text/plain");
+      strcpy(type, MIME_TXT);
     }
   } else {
-    strcpy(type, "text/plain");
+    strcpy(type, MIME_TXT);
   }
 }
 
 void check_file(session_info *info) {
   struct stat s;
-  int ret;
+  int ret, i = 0;
+  char real_path[MAX_PATH_LEN + 1];
   char *pext;
+
+  static const int index_file_count = 3;
+  static const char *index_file[] = {"index.html", "index.htm", "index.php"};
 
   sprintf(info->real_path, "html%s", info->path);
   ret = stat(info->real_path, &s);
 
   if ((s.st_mode & S_IFMT) == S_IFDIR) {
-    sprintf(info->real_path, "%s/index.html", info->real_path);
+    do {
+      sprintf(real_path, "%s/%s", info->real_path, index_file[i++]);
+    } while (access(real_path, R_OK) == -1 && i < index_file_count);
+
+    strcpy(info->real_path, real_path);
   }
 
   ret = stat(info->real_path, &s);

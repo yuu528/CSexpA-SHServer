@@ -39,12 +39,15 @@
 #define HEADER_WWW_AUTH_FORMAT                                                 \
   HEADER_WWW_AUTH HEADER_WWW_AUTH_BASIC HEADER_WWW_AUTH_REALM CRLF
 
+#define CGI_CMD_PHP "php-cgi %s > %s"
+
 int count_digits(int);
 void send_http_msg(int, char *);
 void send_200(int);
 void send_30x(int, int, char *);
 void send_401(int, char *);
 void send_404(int);
-void send_file(int, char *);
+void send_file(int, char *, int);
+void send_file_cgi(int, char *);
 
 #endif
