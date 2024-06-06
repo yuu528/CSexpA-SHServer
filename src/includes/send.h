@@ -38,8 +38,12 @@
 #define HEADER_WWW_AUTH_FORMAT                                                 \
   HEADER_WWW_AUTH HEADER_WWW_AUTH_BASIC HEADER_WWW_AUTH_REALM CRLF
 
-#define CGI_CMD_PHP "php-cgi %s > %s"
-#define CGI_CMD_CGI "%s > %s"
+#define CGI_VERSION "CGI/1.1"
+
+#define CGI_ENV(name) " " #name "="
+
+#define CGI_CMD_PHP_FORMAT " php-cgi %s > %s"
+#define CGI_CMD_CGI_FORMAT " %s > %s"
 
 int count_digits(int);
 void send_http_msg(int, char *);

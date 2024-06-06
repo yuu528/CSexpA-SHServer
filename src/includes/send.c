@@ -130,23 +130,52 @@ void send_file(int sock, char *filename, int additional_header) {
 }
 
 void send_file_cgi(int sock, char *filename) {
-  char tmpfile[L_tmpnam];
+  FILE *fp;
+  char tmpfile[L_tmpnam], tmpfile2[L_tmpnam];
   char *pext = strrchr(filename, '.');
-
   char cmd[sizeof(CGI_CMD_PHP) + strlen(filename)];
 
   tmpnam(tmpfile);
+  tmpnam(tmpfile2);
+
+  fp = fopen(tmpfile, "w");
+  if (fp == NULL) {
+    return;
+  }
+
+  // clang-format off
+  fprintf(
+    fp,
+    CGI_ENV(PHP_SELF) "%s"
+    CGI_ENV(GATEWAY_INTERFACE) "%s"
+    CGI_ENV(SERVER_ADDR) "%s"
+    CGI_ENV(SERVER_PROTOCOL) "%s"
+    CGI_ENV(REQUEST_METHOD) "%s"
+    CGI_ENV(REQUEST_TIME) "%s"
+    CGI_ENV(REQUEST_TIME_FLOAT) "%s"
+    CGI_ENV(QUERY_STRING) "%s"
+    CGI_ENV(DOCUMENT_ROOT) "%s"
+    CGI_ENV(REMOTE_ADDR) "%s"
+    CGI_ENV(REMOTE_PORT) "%s"
+    CGI_ENV(SCRIPT_FILENAME) "%s"
+    CGI_ENV(SERVER_PORT) "%d"
+    CGI_ENV(REQUEST_URI) "%s"
+    CGI_ENV(PHP_AUTH_USER) "%s"
+    CGI_ENV(PHP_AUTH_PW) "%s"
+    CGI_ENV(AUTH_TYPE) "%s"
+  );
+  // clang-format on
 
   if (pext != NULL) {
     if (strcmp(pext, EXT_PHP) == 0) {
-      sprintf(cmd, CGI_CMD_PHP, filename, tmpfile);
+      sprintf(cmd, CGI_CMD_PHP_FORMAT, filename, tmpfile);
       system(cmd);
 
       send_file(sock, tmpfile, 1);
 
       return;
     } else if (strcmp(pext, EXT_CGI) == 0) {
-      sprintf(cmd, CGI_CMD_CGI, filename, tmpfile);
+      sprintf(cmd, CGI_CMD_CGI_FORMAT, filename, tmpfile);
       system(cmd);
 
       send_file(sock, tmpfile, 1);
