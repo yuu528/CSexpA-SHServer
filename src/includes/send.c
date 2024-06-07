@@ -148,14 +148,14 @@ void send_file_cgi(int sock, char *filename, session_info *info) {
   // clang-format off
   fprintf(
     fp,
-    // CGI_ENV(PHP_SELF) "%s"
+    CGI_ENV(PHP_SELF) "'%s'"
     CGI_ENV(GATEWAY_INTERFACE) "'%s'"
     // CGI_ENV(SERVER_ADDR) "%s"
     CGI_ENV(REQUEST_METHOD) "'%s'"
     // CGI_ENV(REQUEST_TIME) "%s"
     // CGI_ENV(REQUEST_TIME_FLOAT) "%s"
     CGI_ENV(QUERY_STRING) "'%s'"
-    // CGI_ENV(DOCUMENT_ROOT) "%s"
+    CGI_ENV(DOCUMENT_ROOT) "\"%s\""
     // CGI_ENV(REMOTE_ADDR) "%s"
     // CGI_ENV(REMOTE_PORT) "%s"
     CGI_ENV(SCRIPT_FILENAME) "\"%s\"'%s'"
@@ -165,19 +165,33 @@ void send_file_cgi(int sock, char *filename, session_info *info) {
     // CGI_ENV(PHP_AUTH_PW) "%s"
     // CGI_ENV(AUTH_TYPE) "%s"
     CGI_ENV(REDIRECT_STATUS) "'%d'"
+    CGI_ENV(CONTENT_TYPE) "'%s'"
     ,
+    info->real_path,
     CGI_VERSION,
     info->cmd,
     info->query,
+    "$(pwd)/home",
     "$(pwd)/",
     info->real_path,
     info->path,
-    200
+    200,
+    info->client_type
   );
   // clang-format on
 
   fclose(fp);
   fp = fopen(tmpfile, "a");
+
+  if (info->client_size > 0) {
+    fprintf(fp, CGI_ENV(CONTENT_LENGTH) "'%d'", info->client_size);
+  }
+
+  fprintf(fp, "\nexec");
+
+  if (strlen(info->content) > 0) {
+    fprintf(fp, " echo '%s' |", info->content);
+  }
 
   if (pext != NULL) {
     if (strcmp(pext, EXT_PHP) == 0) {

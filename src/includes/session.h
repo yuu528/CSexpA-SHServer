@@ -8,6 +8,7 @@
 #define MAX_TYPE_LEN 64
 #define MAX_AUTH_NAME_LEN 512
 #define MAX_AUTH_CRED_LEN 2048
+#define MAX_HOST_LEN 64
 
 #define HTACCESS_MAX 10
 
@@ -23,6 +24,10 @@ typedef struct {
 
   int code;
   int size;
+
+  char content[MAX_QUERY_LEN];
+  char client_type[MAX_TYPE_LEN];
+  int client_size;
 
   // cgi
   int is_cgi;

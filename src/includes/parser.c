@@ -14,14 +14,17 @@ int parse_header(char *buf, int size, session_info *info) {
 
   // init
   info->auth_type = E_AUTH_TYPE_NONE;
+  info->client_size = -1;
   strcpy(info->client_authorization, "");
+  strcpy(info->content, "");
+  strcpy(info->client_type, "");
 
   ptok = strtok_r(buf, delim, &ptokn);
 
   while (ptok != NULL) {
-    // remove \n
+    // remove \r
     for (int j = 0; j < strlen(ptok); j++) {
-      if (ptok[j] == '\n') {
+      if (ptok[j] == '\r') {
         ptok[j] = '\0';
       }
     }
@@ -29,7 +32,12 @@ int parse_header(char *buf, int size, session_info *info) {
     if (i == 0) {
       parse_status(ptok, info);
     } else {
-      parse_header_field(ptok, info);
+      if (strlen(ptok) > 0) {
+        parse_header_field(ptok, info);
+      } else if (strlen(ptokn) > 0) {
+        strcpy(info->content, ptokn);
+        break;
+      }
     }
 
     ptok = strtok_r(NULL, delim, &ptokn);
@@ -84,9 +92,16 @@ void parse_path_query(char *raw_path, session_info *info) {
 
 void parse_header_field(char *line, session_info *info) {
   char args[HEADER_MAX_ARGS][1024];
-  char *ptok, *ptokn, *ptok2, *ptokn2;
+  char *ptok, *ptokn, *ptok2, *ptokn2, *argv;
   char *delim = ":", *delim2 = " ";
   int i = 0, j;
+
+  // remove \r
+  for (int k = 0; k < strlen(line); k++) {
+    if (line[k] == '\r' || line[k] == '\n') {
+      line[k] = '\0';
+    }
+  }
 
   ptok = strtok_r(line, delim, &ptokn);
 
@@ -98,27 +113,24 @@ void parse_header_field(char *line, session_info *info) {
     i++;
   }
 
+  // skip space
+  j = 0;
+  while (args[1][j] == ' ') {
+    j++;
+  }
+  argv = args[1] + j;
+
   // parse args
-  if (strcmp(args[0], "Authorization") == 0) {
-    j = 0;
-
-    // skip space
-    while (args[1][j] == ' ') {
-      j++;
-    }
-
-    ptok2 = strtok_r(args[1] + j, delim2, &ptokn2);
+  if (strcmp(args[0], HEADER_FIELD_AUTHORIZATION) == 0) {
+    ptok2 = strtok_r(argv, delim2, &ptokn2);
 
     // check auth type
-    if (strcmp(args[1] + j, "Basic") == 0) {
-      // remove \r
-      for (int k = 0; k < strlen(ptok2); k++) {
-        if (ptok2[k] == '\r' || ptok2[k] == '\n') {
-          ptok2[k] = '\0';
-        }
-      }
-
+    if (strcmp(argv, HEADER_KEYWORD_BASIC) == 0) {
       strcpy(info->client_authorization, ptokn2);
     }
+  } else if (strcmp(args[0], HEADER_FIELD_CONTENT_TYPE) == 0) {
+    strcpy(info->client_type, argv);
+  } else if (strcmp(args[0], HEADER_FIELD_CONTENT_LENGTH) == 0) {
+    info->client_size = atoi(argv);
   }
 }

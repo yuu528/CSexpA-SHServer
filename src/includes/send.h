@@ -40,7 +40,7 @@
 
 #define CGI_VERSION "CGI/1.1"
 
-#define CGI_ENV(name) " " #name "="
+#define CGI_ENV(name) "\nexport " #name "="
 
 #define CGI_CMD_PHP_FORMAT " php-cgi $(pwd)/%s > %s"
 #define CGI_CMD_CGI_FORMAT " %s > %s"
