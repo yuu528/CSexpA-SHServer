@@ -1,5 +1,6 @@
 #include "send.h"
 #include "fileutil.h"
+#include "session.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,7 +115,6 @@ void send_file(int sock, char *filename, int additional_header) {
   send_http_msg(sock, header_buf);
 
   // send file
-
   len = fread(buf, sizeof(char), FILE_BUFFER_SIZE, fp);
   while (len > 0) {
     int ret = send(sock, buf, len, MSG_NOSIGNAL);
@@ -129,11 +129,11 @@ void send_file(int sock, char *filename, int additional_header) {
   fclose(fp);
 }
 
-void send_file_cgi(int sock, char *filename) {
+void send_file_cgi(int sock, char *filename, session_info *info) {
   FILE *fp;
   char tmpfile[L_tmpnam], tmpfile2[L_tmpnam];
   char *pext = strrchr(filename, '.');
-  char cmd[sizeof(CGI_CMD_PHP) + strlen(filename)];
+  char cmd[sizeof(CGI_CMD_PHP_FORMAT) + strlen(filename)];
 
   tmpnam(tmpfile);
   tmpnam(tmpfile2);
@@ -143,43 +143,58 @@ void send_file_cgi(int sock, char *filename) {
     return;
   }
 
+  sprintf(cmd, "chmod +x %s && %s", tmpfile, tmpfile);
+
   // clang-format off
   fprintf(
     fp,
-    CGI_ENV(PHP_SELF) "%s"
-    CGI_ENV(GATEWAY_INTERFACE) "%s"
-    CGI_ENV(SERVER_ADDR) "%s"
-    CGI_ENV(SERVER_PROTOCOL) "%s"
-    CGI_ENV(REQUEST_METHOD) "%s"
-    CGI_ENV(REQUEST_TIME) "%s"
-    CGI_ENV(REQUEST_TIME_FLOAT) "%s"
-    CGI_ENV(QUERY_STRING) "%s"
-    CGI_ENV(DOCUMENT_ROOT) "%s"
-    CGI_ENV(REMOTE_ADDR) "%s"
-    CGI_ENV(REMOTE_PORT) "%s"
-    CGI_ENV(SCRIPT_FILENAME) "%s"
-    CGI_ENV(SERVER_PORT) "%d"
-    CGI_ENV(REQUEST_URI) "%s"
-    CGI_ENV(PHP_AUTH_USER) "%s"
-    CGI_ENV(PHP_AUTH_PW) "%s"
-    CGI_ENV(AUTH_TYPE) "%s"
+    // CGI_ENV(PHP_SELF) "%s"
+    CGI_ENV(GATEWAY_INTERFACE) "'%s'"
+    // CGI_ENV(SERVER_ADDR) "%s"
+    CGI_ENV(REQUEST_METHOD) "'%s'"
+    // CGI_ENV(REQUEST_TIME) "%s"
+    // CGI_ENV(REQUEST_TIME_FLOAT) "%s"
+    CGI_ENV(QUERY_STRING) "'%s'"
+    // CGI_ENV(DOCUMENT_ROOT) "%s"
+    // CGI_ENV(REMOTE_ADDR) "%s"
+    // CGI_ENV(REMOTE_PORT) "%s"
+    CGI_ENV(SCRIPT_FILENAME) "\"%s\"'%s'"
+    // CGI_ENV(SERVER_PORT) "%d"
+    CGI_ENV(REQUEST_URI) "'%s'"
+    // CGI_ENV(PHP_AUTH_USER) "%s"
+    // CGI_ENV(PHP_AUTH_PW) "%s"
+    // CGI_ENV(AUTH_TYPE) "%s"
+    CGI_ENV(REDIRECT_STATUS) "'%d'"
+    ,
+    CGI_VERSION,
+    info->cmd,
+    info->query,
+    "$(pwd)/",
+    info->real_path,
+    info->path,
+    200
   );
   // clang-format on
 
+  fclose(fp);
+  fp = fopen(tmpfile, "a");
+
   if (pext != NULL) {
     if (strcmp(pext, EXT_PHP) == 0) {
-      sprintf(cmd, CGI_CMD_PHP_FORMAT, filename, tmpfile);
+      fprintf(fp, CGI_CMD_PHP_FORMAT, filename, tmpfile2);
+      fclose(fp);
+
       system(cmd);
 
-      send_file(sock, tmpfile, 1);
-
+      send_file(sock, tmpfile2, 1);
       return;
     } else if (strcmp(pext, EXT_CGI) == 0) {
-      sprintf(cmd, CGI_CMD_CGI_FORMAT, filename, tmpfile);
+      fprintf(fp, CGI_CMD_CGI_FORMAT, filename, tmpfile2);
+      fclose(fp);
+
       system(cmd);
 
-      send_file(sock, tmpfile, 1);
-
+      send_file(sock, tmpfile2, 1);
       return;
     }
   }

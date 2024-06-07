@@ -4,6 +4,7 @@
 
 #define MAX_PATH_LEN 512
 #define MAX_CMD_LEN 64
+#define MAX_QUERY_LEN 1024
 #define MAX_TYPE_LEN 64
 #define MAX_AUTH_NAME_LEN 512
 #define MAX_AUTH_CRED_LEN 2048
@@ -15,6 +16,7 @@ typedef enum { E_AUTH_TYPE_NONE, E_AUTH_TYPE_BASIC } auth_type_spec;
 typedef struct {
   char cmd[MAX_CMD_LEN];
   char path[MAX_PATH_LEN];
+  char query[MAX_QUERY_LEN];
 
   char real_path[MAX_PATH_LEN];
   char type[MAX_TYPE_LEN];

@@ -9,6 +9,7 @@
 
 int parse_header(char *, int, session_info *);
 void parse_status(char *, session_info *);
+void parse_path_query(char *, session_info *);
 void parse_header_field(char *, session_info *);
 
 #endif

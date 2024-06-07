@@ -45,42 +45,41 @@ int parse_header(char *buf, int size, session_info *info) {
 }
 
 void parse_status(char *status, session_info *pinfo) {
-  char cmd[1024];
-  char path[1024];
-  int i, j;
+  char argv[HEADER_MAX_LEN_PER_LINE];
+  char *ptok, *ptokn;
+  char *delim = " ";
+  int i = 0;
 
-  enum state_type { SEARCH_CMD, SEARCH_PATH, SEARCH_END } state;
+  strcpy(argv, status);
 
-  state = SEARCH_CMD;
-  j = 0;
-  for (i = 0; i < strlen(status); i++) {
-    switch (state) {
-    case SEARCH_CMD:
-      if (status[i] == ' ') {
-        cmd[j] = '\0';
-        j = 0;
-        state = SEARCH_PATH;
-      } else {
-        cmd[j] = status[i];
-        j++;
-      }
-      break;
+  ptok = strtok_r(argv, delim, &ptokn);
 
-    case SEARCH_PATH:
-      if (status[i] == ' ') {
-        path[j] = '\0';
-        j = 0;
-        state = SEARCH_END;
-      } else {
-        path[j] = status[i];
-        j++;
-      }
-      break;
+  while (ptok != NULL && i < 2) {
+    if (i == 0) {
+      strcpy(pinfo->cmd, ptok);
+    } else if (i == 1) {
+      parse_path_query(ptok, pinfo);
     }
-  }
 
-  strcpy(pinfo->cmd, cmd);
-  strcpy(pinfo->path, path);
+    i++;
+
+    ptok = strtok_r(NULL, delim, &ptokn);
+  }
+}
+
+void parse_path_query(char *raw_path, session_info *info) {
+  char *ptok, *ptokn;
+  char *delim = "?";
+
+  ptok = strtok_r(raw_path, delim, &ptokn);
+
+  strcpy(info->path, ptok);
+
+  if (ptokn != NULL) {
+    strcpy(info->query, ptokn);
+  } else {
+    strcpy(info->query, "");
+  }
 }
 
 void parse_header_field(char *line, session_info *info) {

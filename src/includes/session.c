@@ -43,7 +43,7 @@ void http_reply(int sock, session_info *info) {
   switch (info->code) {
   case 200:
     send_200(sock);
-    send_file_cgi(sock, info->real_path);
+    send_file_cgi(sock, info->real_path, info);
     break;
 
   case 301:
@@ -58,7 +58,7 @@ void http_reply(int sock, session_info *info) {
     printf("401 auth required %s\n", info->path);
 
     if (access(info->doc_401, R_OK) != -1) {
-      send_file_cgi(sock, info->doc_401);
+      send_file_cgi(sock, info->doc_401, info);
     } else {
       send_http_msg(sock, CRLF);
     }
@@ -69,7 +69,7 @@ void http_reply(int sock, session_info *info) {
     printf("403 forbidden %s\n", info->path);
 
     if (access(info->doc_403, R_OK) != -1) {
-      send_file_cgi(sock, info->doc_403);
+      send_file_cgi(sock, info->doc_403, info);
     } else {
       send_http_msg(sock, CRLF);
     }
@@ -80,7 +80,7 @@ void http_reply(int sock, session_info *info) {
     printf("404 not found %s\n", info->path);
 
     if (access(info->doc_404, R_OK) != -1) {
-      send_file_cgi(sock, info->doc_404);
+      send_file_cgi(sock, info->doc_404, info);
     } else {
       send_http_msg(sock, CRLF);
     }

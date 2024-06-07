@@ -42,7 +42,7 @@
 
 #define CGI_ENV(name) " " #name "="
 
-#define CGI_CMD_PHP_FORMAT " php-cgi %s > %s"
+#define CGI_CMD_PHP_FORMAT " php-cgi $(pwd)/%s > %s"
 #define CGI_CMD_CGI_FORMAT " %s > %s"
 
 int count_digits(int);
@@ -53,6 +53,6 @@ void send_401(int, char *);
 void send_403(int);
 void send_404(int);
 void send_file(int, char *, int);
-void send_file_cgi(int, char *);
+void send_file_cgi(int, char *, session_info *);
 
 #endif
