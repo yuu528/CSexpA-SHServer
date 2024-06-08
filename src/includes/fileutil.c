@@ -37,6 +37,10 @@ void get_file_type(char *path, char *type) {
     if (strcmp(pext, EXT_HTML) == 0 || strcmp(pext, EXT_HTM) == 0 ||
         strcmp(pext, EXT_PHP) == 0) {
       strcpy(type, MIME_HTML);
+    } else if (strcmp(pext, EXT_CSS) == 0) {
+      strcpy(type, MIME_CSS);
+    } else if (strcmp(pext, EXT_JS) == 0) {
+      strcpy(type, MIME_JS);
     } else if (strcmp(pext, EXT_JPG) == 0) {
       strcpy(type, MIME_JPG);
     } else if (strcmp(pext, EXT_PNG) == 0) {
