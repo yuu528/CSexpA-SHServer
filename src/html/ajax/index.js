@@ -1,7 +1,7 @@
 window.addEventListener('DOMContentLoaded', () => {
 	document.getElementById('load-btn').addEventListener('click', () => {
 		const xhr = new XMLHttpRequest();
-		xhr.open('GET', 'test.json');
+		xhr.open('GET', '/ajax/test.json');
 		xhr.addEventListener('load', () => {
 			let note = document.getElementById('note');
 
