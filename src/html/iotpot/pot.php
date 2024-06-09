@@ -10,10 +10,11 @@ if(isset($_POST['start'])) {
 	}
 
 	$data = array(
-		'status' => 2 // working
+		'status' => 2, // working
+		'time' => time()
 	);
 
 	file_put_contents($filename, json_encode($data));
-	system(getcwd() . '/pour.py >/dev/null 2>/dev/null &');
+	system('python \'' . getcwd() . '/pour.py\' >/dev/null 2>/dev/null &');
 }
 ?>

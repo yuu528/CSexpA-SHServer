@@ -30,8 +30,13 @@ function updateStatus() {
 			if('status' in data && 1 <= data.status && data.status <= 2) {
 				updateStatusView(data.status);
 
-				if('progress' in data) {
-					document.getElementById('progress').value = data.progress;
+				let progress = document.getElementById('progress');
+				if('time' in data) {
+					progress.value = (new Date().getTime() / 1000 - data.time) / 5.0 * 100;
+					console.log(new Date().getTime());
+					console.log(data.time);
+				} else {
+					progress.value = 0;
 				}
 			} else {
 				updateStatusView(0);
