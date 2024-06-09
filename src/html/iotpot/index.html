@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>IoT Pot</title>
+		<link rel="stylesheet" type="text/css" href="/iotpot/style.css">
+		<script src="/iotpot/index.js"></script>
+	</head>
+	<body>
+		<div class="app">
+			<div class="header">
+				<span>IoT Pot</span>
+			</div>
+
+			<div class="main">
+				<div class="monitor">
+					<div class="status">
+						<span id="status">Not connected</span>
+					</div>
+					<div class="progress">
+						<progress id="progress" max="100" value="0"></progress>
+					</div>
+				</div>
+				<div class="control">
+					<button id="start-btn" disabled>Start</button>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
