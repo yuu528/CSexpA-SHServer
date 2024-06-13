@@ -1,4 +1,5 @@
 *.o
 *.out
 *.swp
+*.test.*
 src/html/iotpot/status.json
