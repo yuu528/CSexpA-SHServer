@@ -42,10 +42,12 @@ THREADS=(
 	100
 	200
 	500
-	1000
+	# 1000
 )
 
 pid=''
+runningc=0
+runningt=''
 
 function run_remote() {
 	echo -n "Running on the remote server: $1 ... " >&2
@@ -73,6 +75,7 @@ function kill_remote_server() {
 
 function trap_sigint() {
 	kill_remote_server
+	print_msg "Now running test: #$runningc ($runningt) is stopped"
 	exit
 }
 
@@ -312,9 +315,10 @@ trap trap_sigint SIGINT
 
 onlyplot=false
 startfrom=1
+nextrun='NM'
 
 # parse options
-while getopts 'hpi:u:t:r:' opt; do
+while getopts 'hpi:u:t:r:f:' opt; do
 	case "$opt" in
 		h)
 			cat <<EOF
@@ -326,6 +330,7 @@ Options:
 	-u <Username>: Override SSH Username (default: $SSH_USER)
 	-t <Port>: Override server port (default: $PORT)
 	-r <From>: Run test from <From> (1-5, default: 1)
+	-f <NM|SL|MP|TH|AP>: Run test from <NM|SL|MP|TH|AP> (default: NM)
 EOF
 			exit 0
 			;;
@@ -347,7 +352,11 @@ EOF
 			;;
 
 		r)
-			startfrom=$OPTARG
+			startfrom="$OPTARG"
+			;;
+
+		f)
+			nextrun="$OPTARG"
 			;;
 
 		\?)
@@ -362,18 +371,41 @@ read -sp 'Server SSH Password: ' ssh_pass
 # check if sshpass is installed and server is accessible
 run_remote 'true'
 
-# clean up
-rm -f *.csv *.png
-
 if [ "$onlyplot" = false ]; then
 	for i in $(seq $startfrom 5); do
 		print_msg "Running Test #$i"
 
-		run_test "$i.$NM_DATA_CSV" 'normal' "$PORT" "$REMOTE_NM_EXE"
-		run_test "$i.$SL_DATA_CSV" 'select' "$PORT" "$REMOTE_SL_EXE"
-		run_test "$i.$MP_DATA_CSV" 'fork' "$PORT" "$REMOTE_MP_EXE"
-		run_test "$i.$TH_DATA_CSV" 'pthread' "$PORT" "$REMOTE_MP_EXE"
-		run_test "$i.$AP_DATA_CSV" 'apache' "$PORT_APACHE" ""
+		runningc=$i
+
+		if [ "$nextrun" = 'NM' ]; then
+			runningt='normal'
+			run_test "$i.$NM_DATA_CSV" "$runningt" "$PORT" "$REMOTE_NM_EXE"
+			nextrun='SL'
+		fi
+
+		if [ "$nextrun" = 'SL' ]; then
+			runningt='select'
+			run_test "$i.$SL_DATA_CSV" "$runningt" "$PORT" "$REMOTE_SL_EXE"
+			nextrun='MP'
+		fi
+
+		if [ "$nextrun" = 'MP' ]; then
+			runningt='fork'
+			run_test "$i.$MP_DATA_CSV" "$runningt" "$PORT" "$REMOTE_MP_EXE"
+			nextrun='TH'
+		fi
+
+		if [ "$nextrun" = 'TH' ]; then
+			runningt='pthread'
+			run_test "$i.$TH_DATA_CSV" "$runningt" "$PORT" "$REMOTE_TH_EXE"
+			nextrun='AP'
+		fi
+
+		if [ "$nextrun" = 'AP' ]; then
+			runningt='apache'
+			run_test "$i.$AP_DATA_CSV" "$runningt" "$PORT_APACHE" ""
+			nextrun='NM'
+		fi
 	done
 fi
 
