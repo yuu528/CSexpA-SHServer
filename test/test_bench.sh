@@ -311,9 +311,10 @@ echo 'Done'
 trap trap_sigint SIGINT
 
 onlyplot=false
+startfrom=1
 
 # parse options
-while getopts 'hpi:u:t:' opt; do
+while getopts 'hpi:u:t:r:' opt; do
 	case "$opt" in
 		h)
 			cat <<EOF
@@ -321,9 +322,10 @@ Usage: $0 [options]
 Options:
 	-h: Show this help message
 	-p: Only plotting data
-	-i: Override IP address (default: $IP)
-	-u: Override SSH Username (default: $SSH_USER)
-	-t: Override server port (default: $PORT)
+	-i <IP>: Override IP address (default: $IP)
+	-u <Username>: Override SSH Username (default: $SSH_USER)
+	-t <Port>: Override server port (default: $PORT)
+	-r <From>: Run test from <From> (1-5, default: 1)
 EOF
 			exit 0
 			;;
@@ -344,6 +346,10 @@ EOF
 			PORT="$OPTARG"
 			;;
 
+		r)
+			startfrom=$OPTARG
+			;;
+
 		\?)
 			exit 1
 			;;
@@ -359,19 +365,16 @@ run_remote 'true'
 # clean up
 rm -f *.csv *.png
 
-i=1
 if [ "$onlyplot" = false ]; then
-	print_msg "Running Test #$i"
+	for i in $(seq $startfrom 5); do
+		print_msg "Running Test #$i"
 
-	for i in $(seq 5); do
 		run_test "$i.$NM_DATA_CSV" 'normal' "$PORT" "$REMOTE_NM_EXE"
 		run_test "$i.$SL_DATA_CSV" 'select' "$PORT" "$REMOTE_SL_EXE"
 		run_test "$i.$MP_DATA_CSV" 'fork' "$PORT" "$REMOTE_MP_EXE"
 		run_test "$i.$TH_DATA_CSV" 'pthread' "$PORT" "$REMOTE_MP_EXE"
 		run_test "$i.$AP_DATA_CSV" 'apache' "$PORT_APACHE" ""
 	done
-
-	i=$(( $i + 1 ))
 fi
 
 plot_data
