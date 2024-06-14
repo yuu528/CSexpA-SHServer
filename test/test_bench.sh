@@ -26,8 +26,8 @@ RETRY=10
 
 PLOT_PTS=( 7 5 9 6 4 8 )
 
-# IP='192.168.100.1'
-IP='192.168.0.45'
+IP='192.168.100.1'
+# IP='192.168.0.45'
 PORT='10028'
 PORT_APACHE='80'
 SSH_USER='pi'
@@ -159,20 +159,22 @@ function run_test() {
 }
 
 function plot_data() {
+	print_msg 'Plotting data'
+
 	for basefile in "$NM_DATA_CSV" "$SL_DATA_CSV" "$MP_DATA_CSV" "$TH_DATA_CSV" "$AP_DATA_CSV"; do
 		i=0
 		plotquery=''
 
-		for file in $(ls "*.$basefile"); do
+		for file in $(ls *."$basefile"); do
 			if [[ "$file" =~ "ave." ]]; then
 				continue;
 			fi
 
-			if [ i -ne 0 ]; then
+			if [ $i -ne 0 ]; then
 				plotquery+=', '
 			fi
 
-			plotquery+='"'"$file"'"'" using 1:2 with linespoints pt ${PLOT_PTS[$i]} title"'"'Test $(( $i + 1 ))'"'
+			plotquery+='"'"$file"'"'" using 1:2 with linespoints pt ${PLOT_PTS[$i]} title"'"'"Test $(( $i + 1 ))"'"'
 			i=$(( $i + 1 ))
 		done
 
@@ -192,7 +194,7 @@ set key left top
 set xlabel "Client Threads"
 set ylabel "Time (sec.)"
 
-plot "$plotquery"
+plot $plotquery
 EOF
 
 		gnuplot <<EOF
@@ -212,12 +214,14 @@ set yrange [0:1]
 set xlabel "Client Threads"
 set ylabel "Error Rate"
 
-plot "$(echo "$plotquery" | sed 's/1:2/1:3/')"
+plot $(echo "$plotquery" | sed 's/1:2/1:3/g')
 EOF
 	done
 }
 
 function plot_data_ave() {
+	print_msg 'Plotting average data'
+
 	titles=(
 		'No multiplexing'
 		'select'
@@ -229,7 +233,7 @@ function plot_data_ave() {
 	plotquery=''
 
 	for file in "$NM_DATA_CSV" "$SL_DATA_CSV" "$MP_DATA_CSV" "$TH_DATA_CSV" "$AP_DATA_CSV"; do
-		cat "*.$file" | awk -F, '
+		cat *."$file" | awk -F, '
 		$1 ~ /[0-9]+/{
 			time[$1] += $2;
 			error [$1] += $3;
@@ -246,12 +250,14 @@ function plot_data_ave() {
 			plotquery+=', '
 		fi
 
-		plotquery+='"'"ave.$file"'"'" using 1:2 with linespoints pt ${PLOT_PTS[$i]} title"'"'${titles[$i]}'"'
+		plotquery+='"'"ave.$file"'"'" using 1:2 with linespoints pt ${PLOT_PTS[$i]} title "'"'${titles[$i]}'"'
+
+		i=$(( $i + 1 ))
 	done
 
 	gnuplot <<EOF
 set terminal pngcairo
-set output "$TIME_DATA_PNG"
+set output "$AVE_TIME_DATA_PNG"
 
 set mono
 
@@ -265,12 +271,12 @@ set key left top
 set xlabel "Client Threads"
 set ylabel "Average Time (sec.)"
 
-plot "$plotquery"
+plot $plotquery
 EOF
 
 	gnuplot <<EOF
 set terminal pngcairo
-set output "$ERROR_DATA_PNG"
+set output "$AVE_ERROR_DATA_PNG"
 
 set mono
 
@@ -285,7 +291,7 @@ set yrange [0:1]
 set xlabel "Client Threads"
 set ylabel "Average Error Rate"
 
-plot "$(echo "$plotquery" | sed 's/1:2/1:3/')"
+plot $(echo "$plotquery" | sed 's/1:2/1:3/g')
 EOF
 }
 
@@ -350,7 +356,10 @@ read -sp 'Server SSH Password: ' ssh_pass
 # check if sshpass is installed and server is accessible
 run_remote 'true'
 
+i=1
 if [ "$onlyplot" = false ]; then
+	print_msg "Running Test #$i"
+
 	for i in $(seq 5); do
 		run_test "$i.$NM_DATA_CSV" 'normal' "$PORT" "$REMOTE_NM_EXE"
 		run_test "$i.$SL_DATA_CSV" 'select' "$PORT" "$REMOTE_SL_EXE"
@@ -358,6 +367,8 @@ if [ "$onlyplot" = false ]; then
 		run_test "$i.$TH_DATA_CSV" 'pthread' "$PORT" "$REMOTE_MP_EXE"
 		run_test "$i.$AP_DATA_CSV" 'apache' "$PORT_APACHE" ""
 	done
+
+	i=$(( $i + 1 ))
 fi
 
 plot_data
