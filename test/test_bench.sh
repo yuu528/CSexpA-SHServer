@@ -6,8 +6,10 @@ MP_DATA_CSV='mp.test.csv'
 TH_DATA_CSV='th.test.csv'
 AP_DATA_CSV='ap.test.csv'
 
-TIME_DATA_PNG='time.test.png'
-ERROR_DATA_PNG='error.test.png'
+AVE_TIME_DATA_PNG='avetime.test.png'
+AVE_ERROR_DATA_PNG='aveerror.test.png'
+# time.*.test.png
+# error.*.test.png
 
 PROGRAM_DIR='../bench/'
 PROGRAM_EXE='bench.out'
@@ -21,6 +23,8 @@ REMOTE_TH_EXE='./shserver_th.out'
 SLEEP=1
 SLEEP_RETRY=1
 RETRY=10
+
+PLOT_PTS=( 7 5 9 6 4 8 )
 
 # IP='192.168.100.1'
 IP='192.168.0.45'
@@ -44,7 +48,7 @@ THREADS=(
 pid=''
 
 function run_remote() {
-	echo -n "Running on the remote server: $1 ..." >&2
+	echo -n "Running on the remote server: $1 ... " >&2
 	sshpass -p "$ssh_pass" ssh -o StrictHostKeyChecking=no "$SSH_USER"@"$IP" "$1"
 
 	if [ $? -ne 0 ]; then
@@ -155,6 +159,96 @@ function run_test() {
 }
 
 function plot_data() {
+	for basefile in "$NM_DATA_CSV" "$SL_DATA_CSV" "$MP_DATA_CSV" "$TH_DATA_CSV" "$AP_DATA_CSV"; do
+		i=0
+		plotquery=''
+
+		for file in $(ls "*.$basefile"); do
+			if [[ "$file" =~ "ave." ]]; then
+				continue;
+			fi
+
+			if [ i -ne 0 ]; then
+				plotquery+=', '
+			fi
+
+			plotquery+='"'"$file"'"'" using 1:2 with linespoints pt ${PLOT_PTS[$i]} title"'"'Test $(( $i + 1 ))'"'
+			i=$(( $i + 1 ))
+		done
+
+		gnuplot <<EOF
+set terminal pngcairo
+set output "$(echo "time.$basefile" | sed 's/\.csv/\.png/')"
+
+set mono
+
+set datafile separator ","
+
+set logscale x
+set logscale y
+
+set key left top
+
+set xlabel "Client Threads"
+set ylabel "Time (sec.)"
+
+plot "$plotquery"
+EOF
+
+		gnuplot <<EOF
+set terminal pngcairo
+set output "$(echo "error.$basefile" | sed 's/\.csv/\.png/')"
+
+set mono
+
+set datafile separator ","
+
+set logscale x
+
+set key left top
+
+set yrange [0:1]
+
+set xlabel "Client Threads"
+set ylabel "Error Rate"
+
+plot "$(echo "$plotquery" | sed 's/1:2/1:3/')"
+EOF
+	done
+}
+
+function plot_data_ave() {
+	titles=(
+		'No multiplexing'
+		'select'
+		'fork'
+		'pthread'
+		'Apache'
+	)
+	i=0
+	plotquery=''
+
+	for file in "$NM_DATA_CSV" "$SL_DATA_CSV" "$MP_DATA_CSV" "$TH_DATA_CSV" "$AP_DATA_CSV"; do
+		cat "*.$file" | awk -F, '
+		$1 ~ /[0-9]+/{
+			time[$1] += $2;
+			error [$1] += $3;
+			count[$1] += 1
+		}
+
+		END{
+			for(key in time) {
+				print key "," (time[key] / count[$1]) "," (error[key] / count[$1]);
+			}
+		}' >"ave.$file"
+
+		if [ $i -ne 0 ]; then
+			plotquery+=', '
+		fi
+
+		plotquery+='"'"ave.$file"'"'" using 1:2 with linespoints pt ${PLOT_PTS[$i]} title"'"'${titles[$i]}'"'
+	done
+
 	gnuplot <<EOF
 set terminal pngcairo
 set output "$TIME_DATA_PNG"
@@ -169,13 +263,9 @@ set logscale y
 set key left top
 
 set xlabel "Client Threads"
-set ylabel "Time (sec.)"
+set ylabel "Average Time (sec.)"
 
-plot "$NM_DATA_CSV" using 1:2 with linespoints pt 2 title "No multiplexing", \
-	"$SL_DATA_CSV" using 1:2 with linespoints pt 7 title "select", \
-	"$MP_DATA_CSV" using 1:2 with linespoints pt 5 title "fork", \
-	"$TH_DATA_CSV" using 1:2 with linespoints pt 13 title "pthread", \
-	"$AP_DATA_CSV" using 1:2 with linespoints pt 1 title "Apache"
+plot "$plotquery"
 EOF
 
 	gnuplot <<EOF
@@ -193,13 +283,9 @@ set key left top
 set yrange [0:1]
 
 set xlabel "Client Threads"
-set ylabel "Error Rate"
+set ylabel "Average Error Rate"
 
-plot "$NM_DATA_CSV" using 1:3 with linespoints pt 2 title "No multiplexing", \
-	"$SL_DATA_CSV" using 1:3 with linespoints pt 7 title "select", \
-	"$MP_DATA_CSV" using 1:3 with linespoints pt 5 title "fork", \
-	"$TH_DATA_CSV" using 1:3 with linespoints pt 13 title "pthread", \
-	"$AP_DATA_CSV" using 1:3 with linespoints pt 1 title "Apache"
+plot "$(echo "$plotquery" | sed 's/1:2/1:3/')"
 EOF
 }
 
@@ -223,10 +309,41 @@ run_remote 'true'
 
 trap trap_sigint SIGINT
 
-run_test "$NM_DATA_CSV" 'normal' "$PORT" "$REMOTE_NM_EXE"
-run_test "$SL_DATA_CSV" 'select' "$PORT" "$REMOTE_SL_EXE"
-run_test "$MP_DATA_CSV" 'fork' "$PORT" "$REMOTE_MP_EXE"
-run_test "$TH_DATA_CSV" 'pthread' "$PORT" "$REMOTE_MP_EXE"
-run_test "$AP_DATA_CSV" 'apache' "$PORT_APACHE" ""
+onlyplot=false
+
+# parse options
+while getopts 'hp' opt; do
+	case "$opt" in
+		h)
+			cat <<EOF
+Usage: $0 [options]
+Options:
+	-h: Show this help message
+	-p: Only plotting data
+EOF
+			exit 0
+			;;
+
+		p)
+			onlyplot=true
+			;;
+
+		\?)
+			echo "Invalid option: $OPTARG" 1>&2
+			exit 1
+			;;
+	esac
+done
+
+if [ "$onlyplot" = false ]; then
+	for i in $(seq 5); do
+		run_test "$i.$NM_DATA_CSV" 'normal' "$PORT" "$REMOTE_NM_EXE"
+		run_test "$i.$SL_DATA_CSV" 'select' "$PORT" "$REMOTE_SL_EXE"
+		run_test "$i.$MP_DATA_CSV" 'fork' "$PORT" "$REMOTE_MP_EXE"
+		run_test "$i.$TH_DATA_CSV" 'pthread' "$PORT" "$REMOTE_MP_EXE"
+		run_test "$i.$AP_DATA_CSV" 'apache' "$PORT_APACHE" ""
+	done
+fi
 
 plot_data
+plot_data_ave
