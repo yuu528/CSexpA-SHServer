@@ -356,6 +356,9 @@ read -sp 'Server SSH Password: ' ssh_pass
 # check if sshpass is installed and server is accessible
 run_remote 'true'
 
+# clean up
+rm -f *.csv *.png
+
 i=1
 if [ "$onlyplot" = false ]; then
 	print_msg "Running Test #$i"
