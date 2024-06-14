@@ -302,17 +302,12 @@ fi
 popd
 echo 'Done'
 
-read -sp 'Server SSH Password: ' ssh_pass
-
-# check if sshpass is installed and server is accessible
-run_remote 'true'
-
 trap trap_sigint SIGINT
 
 onlyplot=false
 
 # parse options
-while getopts 'hp' opt; do
+while getopts 'hpi:u:t:' opt; do
 	case "$opt" in
 		h)
 			cat <<EOF
@@ -320,6 +315,9 @@ Usage: $0 [options]
 Options:
 	-h: Show this help message
 	-p: Only plotting data
+	-i: Override IP address (default: $IP)
+	-u: Override SSH Username (default: $SSH_USER)
+	-t: Override server port (default: $PORT)
 EOF
 			exit 0
 			;;
@@ -328,12 +326,29 @@ EOF
 			onlyplot=true
 			;;
 
+		i)
+			IP="$OPTARG"
+			;;
+
+		u)
+			SSH_USER="$OPTARG"
+			;;
+
+		t)
+			PORT="$OPTARG"
+			;;
+
 		\?)
-			echo "Invalid option: $OPTARG" 1>&2
 			exit 1
 			;;
 	esac
 done
+
+echo "Connect to $SSH_USER@$IP via SSH"
+read -sp 'Server SSH Password: ' ssh_pass
+
+# check if sshpass is installed and server is accessible
+run_remote 'true'
 
 if [ "$onlyplot" = false ]; then
 	for i in $(seq 5); do
